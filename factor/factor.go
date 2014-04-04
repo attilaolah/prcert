@@ -10,19 +10,6 @@ import (
 
 var ErrTimeout = errors.New("timeout while trying to find a prime factor")
 
-// Timeout1 tries to call Split, but returns after t has elapsed.
-// TODO: implement a stop channel to signal Split to die, now it zombies off.
-func Timeout1(z *big.Int, t time.Duration) (p, q *big.Int, err error) {
-	ch := asyncSplit(z)
-	select {
-	case p = <-ch:
-		q = <-ch
-	case <-time.After(t):
-		err = ErrTimeout
-	}
-	return
-}
-
 // Factor returns a channel and sends all prime factors of z on that channel.
 func Factor(z *big.Int) (ch chan *big.Int) {
 	ch = make(chan *big.Int, 1024)
@@ -42,33 +29,39 @@ func Factor(z *big.Int) (ch chan *big.Int) {
 // If found, it returns the factor and the remainder.
 // If no prime factor is found, the first return argument will be set to z.
 func Split(z *big.Int) (p, q *big.Int) {
+	p, q, _ = splitOrQuit(z, make(chan time.Time))
+	return
+}
+
+// SplitOrQuit is just like Split, but it returns an error if it times out.
+func SplitOrQuit(z *big.Int, t time.Duration) (p, q *big.Int, err error) {
+	return splitOrQuit(z, time.After(t))
+}
+
+// Just like Split, but return an error when receiving a kill signal from t.
+func splitOrQuit(z *big.Int, quit <-chan time.Time) (p, q *big.Int, err error) {
 	q, r := big.NewInt(0), big.NewInt(0)
 	if z.Sign() == 0 {
 		return
 	}
 	max := roughSqrt(z)
-	for p = range sieve.BigSieve() {
-		if q.QuoRem(z, p, r); r.Sign() == 0 {
-			break
-		}
-		if max.Cmp(p) == -1 {
-			q.SetInt64(1)
-			p.Set(z)
-			break
+	primes := sieve.BigSieve()
+	for {
+		select {
+		case <- quit:
+			err = ErrTimeout
+			return
+		case p = <-primes:
+			if q.QuoRem(z, p, r); r.Sign() == 0 {
+				return
+			}
+			if max.Cmp(p) == -1 {
+				q.SetInt64(1)
+				p.Set(z)
+				return
+			}
 		}
 	}
-	return
-}
-
-// Route Split to a channel and return immediately.
-func asyncSplit(z *big.Int) (ch chan *big.Int) {
-	ch = make(chan *big.Int, 2)
-	go func() {
-		defer close(ch)
-		p, q := Split(z)
-		ch <- p
-		ch <- q
-	}()
 	return
 }
 

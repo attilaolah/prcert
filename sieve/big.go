@@ -8,7 +8,7 @@ import (
 
 // BigSieve generates prime numbers as *big.Int.
 func BigSieve() (ch chan *big.Int) {
-	ch = make(chan *big.Int, 1024)
+	ch = make(chan *big.Int)
 	go func() {
 		for p := range Sieve() {
 			ch <- big.NewInt(int64(p))
