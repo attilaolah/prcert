@@ -1,11 +1,11 @@
-// Package sieve, "[an] efficient Eratosthenesque prime sieve using channels".
-
+// Package sieve is:
+// "[an] efficient Eratosthenesque prime sieve using channels".
+//
 // Copyright 2009 Anh Hai Trinh. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
+//
 // Source: https://github.com/aht/gosieve/blob/master/sieve3.go
-
 package sieve
 
 import (
@@ -56,33 +56,33 @@ var wheelpos = map[int]int{
 // multiples(13) -> 169, 221, 247, 299, 377, 403, 481, 533, 559, 611, …
 func multiples(p int) chan int { return spin(p*p, p, wheelpos[p%210], 1024) }
 
-type PeekCh struct {
+type peekCh struct {
 	head int
 	ch   chan int
 }
 
-// Heap of PeekCh, sorting by head values.
-type PeekChHeap []*PeekCh
+// Heap of peekCh, sorted by head values.
+type peekChHeap []*peekCh
 
-func (h PeekChHeap) Len() int {
+func (h peekChHeap) Len() int {
 	return len(h)
 }
 
-func (h PeekChHeap) Less(i, j int) bool {
+func (h peekChHeap) Less(i, j int) bool {
 	return h[i].head < h[j].head
 }
 
-func (h PeekChHeap) Swap(i, j int) {
+func (h peekChHeap) Swap(i, j int) {
 	h[i], h[j] = h[j], h[i]
 }
 
-func (h *PeekChHeap) Pop() (v interface{}) {
+func (h *peekChHeap) Pop() (v interface{}) {
 	*h, v = (*h)[:h.Len()-1], (*h)[h.Len()-1]
 	return
 }
 
-func (h *PeekChHeap) Push(v interface{}) {
-	*h = append(*h, v.(*PeekCh))
+func (h *peekChHeap) Push(v interface{}) {
+	*h = append(*h, v.(*peekCh))
 }
 
 // Return a channel which serves as a sending proxy to `out`.
@@ -123,7 +123,7 @@ func sendproxy(out chan<- int) chan<- int {
 	return proxy
 }
 
-// Return a chan int of primes.
+// Sieve generates primes in a channel.
 func Sieve() chan int {
 	// The output values.
 	out := make(chan int, 1024)
@@ -142,26 +142,26 @@ func Sieve() chan int {
 
 	// Merge channels of multiples of `primes` into `composites`.
 	go func() {
-		h := make(PeekChHeap, 0, 8046)
+		h := make(peekChHeap, 0, 8046)
 		min := 143
 		for {
 			m := multiples(<-primes)
 			head := <-m
 			for min < head {
 				composites <- min
-				minchan := heap.Pop(&h).(*PeekCh)
+				minchan := heap.Pop(&h).(*peekCh)
 				min = minchan.head
 				minchan.head = <-minchan.ch
 				heap.Push(&h, minchan)
 			}
 			for min == head {
-				minchan := heap.Pop(&h).(*PeekCh)
+				minchan := heap.Pop(&h).(*peekCh)
 				min = minchan.head
 				minchan.head = <-minchan.ch
 				heap.Push(&h, minchan)
 			}
 			composites <- head
-			heap.Push(&h, &PeekCh{<-m, m})
+			heap.Push(&h, &peekCh{<-m, m})
 		}
 	}()
 
