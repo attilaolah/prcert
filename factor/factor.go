@@ -10,10 +10,10 @@ import (
 
 var ErrTimeout = errors.New("timeout while trying to find a prime factor")
 
-// Timeout1 tries to call Factor1, but returns after t has elapsed.
-// TODO: implement a stop channel to signal Factor1 to die, now it zombies off.
+// Timeout1 tries to call Split, but returns after t has elapsed.
+// TODO: implement a stop channel to signal Split to die, now it zombies off.
 func Timeout1(z *big.Int, t time.Duration) (p, q *big.Int, err error) {
-	ch := asyncFactor1(z)
+	ch := asyncSplit(z)
 	select {
 	case p = <-ch:
 		q = <-ch
@@ -28,20 +28,20 @@ func Factor(z *big.Int) (ch chan *big.Int) {
 	ch = make(chan *big.Int, 1024)
 	go func() {
 		defer close(ch)
-		p, q := Factor1(z)
+		p, q := Split(z)
 		ch <- p
 		for q.BitLen() > 1 {
-			p, q = Factor1(q)
+			p, q = Split(q)
 			ch <- p
 		}
 	}()
 	return
 }
 
-// Factor1 tries to find the first prime factor of z.
+// Split tries to find the first prime factor of z.
 // If found, it returns the factor and the remainder.
 // If no prime factor is found, the first return argument will be set to z.
-func Factor1(z *big.Int) (p, q *big.Int) {
+func Split(z *big.Int) (p, q *big.Int) {
 	q, r := big.NewInt(0), big.NewInt(0)
 	if z.Sign() == 0 {
 		return
@@ -60,12 +60,12 @@ func Factor1(z *big.Int) (p, q *big.Int) {
 	return
 }
 
-// Route Factor1 to a channel and return immediately.
-func asyncFactor1(z *big.Int) (ch chan *big.Int) {
+// Route Split to a channel and return immediately.
+func asyncSplit(z *big.Int) (ch chan *big.Int) {
 	ch = make(chan *big.Int, 2)
 	go func() {
 		defer close(ch)
-		p, q := Factor1(z)
+		p, q := Split(z)
 		ch <- p
 		ch <- q
 	}()
