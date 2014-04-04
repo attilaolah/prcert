@@ -1,3 +1,4 @@
+// Package factor implements prime factorisation functions.
 package factor
 
 import (
@@ -8,6 +9,7 @@ import (
 	"github.com/attilaolah/prcert/sieve"
 )
 
+// ErrTimeout means the timeout was reached during a function call.
 var ErrTimeout = errors.New("timeout while trying to find a prime factor")
 
 // Factor returns a channel and sends all prime factors of z on that channel.
