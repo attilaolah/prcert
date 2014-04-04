@@ -3,13 +3,23 @@ package factor
 import (
 	"errors"
 	"math/big"
+	"time"
 
 	"github.com/attilaolah/prcert/sieve"
 )
 
 var ErrTimeout = errors.New("timeout while trying to find a prime factor")
 
-func Timeout1() (p *big.Int, err error) {
+// Timeout1 tries to call Factor1, but returns after t has elapsed.
+// TODO: implement a stop channel to signal Factor1 to die, now it zombies off.
+func Timeout1(z *big.Int, t time.Duration) (p, q *big.Int, err error) {
+	ch := asyncFactor1(z)
+	select {
+	case p = <-ch:
+		q = <-ch
+	case <-time.After(t):
+		err = ErrTimeout
+	}
 	return
 }
 
@@ -27,7 +37,6 @@ func Factor(z *big.Int) (ch chan *big.Int) {
 	}()
 	return
 }
-
 
 // Factor1 tries to find the first prime factor of z.
 // If found, it returns the factor and the remainder.
@@ -51,7 +60,19 @@ func Factor1(z *big.Int) (p, q *big.Int) {
 	return
 }
 
+// Route Factor1 to a channel and return immediately.
+func asyncFactor1(z *big.Int) (ch chan *big.Int) {
+	ch = make(chan *big.Int, 2)
+	go func() {
+		defer close(ch)
+		p, q := Factor1(z)
+		ch <- p
+		ch <- q
+	}()
+	return
+}
 
+// Rought square root of z.
 func roughSqrt(z *big.Int) *big.Int {
 	return big.NewInt(0).Exp(big.NewInt(2), big.NewInt(int64((z.BitLen()+1)/2)), nil)
 }
