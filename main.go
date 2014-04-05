@@ -3,7 +3,6 @@ package main
 
 import (
 	"fmt"
-	"math/big"
 	"os"
 	"strconv"
 
@@ -42,8 +41,10 @@ func main() {
 		fmt.Println("ERR:", err)
 		return
 	}
-	mods := factor.ModsAfter(z, big.NewInt(1487))
+	mods := factor.Mods(z)
 	for p := range mods {
-		fmt.Println(p, <-mods)
+		m := <-mods
+		fmt.Print(p, m)
+		fmt.Println("", p.Sub(p, m))
 	}
 }
