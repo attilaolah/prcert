@@ -47,6 +47,7 @@ func Mods(z *big.Int) (ch chan *big.Int) {
 
 // ModsAfter is like Mods, but skips primes smaller than m.
 func ModsAfter(z, m *big.Int) (ch chan *big.Int) {
+	t := big.NewInt(0)
 	ch = make(chan *big.Int)
 	go func() {
 		// Endless channel, no need to close.
@@ -55,8 +56,7 @@ func ModsAfter(z, m *big.Int) (ch chan *big.Int) {
 				continue
 			}
 			ch <- p
-			t := big.NewInt(0).Set(z)
-			ch <- t.Mod(t, p)
+			ch <- t.Mod(z, p)
 		}
 	}()
 	return
