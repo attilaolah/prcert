@@ -1,34 +1,43 @@
-// This example shows how to keep trying to factor a number z, but fall back to
-// factoring z-1 if we can't find a prime factor for z in reasonable time.
+// Example that factors big numbers.
 package main
 
 import (
 	"fmt"
-	"math/big"
 	"os"
-	"time"
+	"strconv"
 
+	"github.com/attilaolah/prcert/cache"
 	"github.com/attilaolah/prcert/factor"
 )
 
 func main() {
-	z, ok := big.NewInt(0).SetString(os.Args[1], 10)
-	if !ok {
-		fmt.Println("ERR!")
+
+	if len(os.Args) != 4 {
+		fmt.Printf("usage: %s base exp k\n", os.Args[0])
+		return
+	}
+	var err error
+	var base, exp, k int64
+	if base, err = strconv.ParseInt(os.Args[1], 10, 64); err != nil {
+		fmt.Println(err)
+		return
+	}
+	if exp, err = strconv.ParseInt(os.Args[2], 10, 64); err != nil {
+		fmt.Println(err)
+		return
+	}
+	if k, err = strconv.ParseInt(os.Args[3], 10, 64); err != nil {
+		fmt.Println(err)
 		return
 	}
 
-	var p *big.Int
-	var err error
-	for z.BitLen() > 1 {
-		if p, z, err = factor.SplitOrQuit(big.NewInt(0).Set(z), 2*time.Second); err != nil {
-			fmt.Println("ERR", err)
-			fmt.Println("z--")
-			z.Add(z, big.NewInt(-1))
-			continue
-		}
-		fmt.Println(p)
+	fmt.Println(base, exp, k)
+	z, err := cache.BaseExpK(base, exp, k)
+	if err != nil {
+		fmt.Println(err)
+		return
 	}
-
-	fmt.Printf("\n")
+	fmt.Println(z.BitLen())
+	p, q := factor.Split(z)
+	fmt.Println(p, q.BitLen())
 }
