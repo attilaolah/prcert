@@ -5,9 +5,10 @@ package cache
 import (
 	"fmt"
 	"io/ioutil"
-	"math/big"
 	"os"
 	"path/filepath"
+
+	big "github.com/ncw/gmp"
 )
 
 const cacheDir = ".cache"

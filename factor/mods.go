@@ -2,7 +2,7 @@
 package factor
 
 import (
-	"math/big"
+	big "github.com/ncw/gmp"
 
 	"github.com/attilaolah/prcert/sieve"
 )

@@ -2,9 +2,7 @@
 // "[an] efficient Eratosthenesque prime sieve using channels".
 package sieve
 
-import (
-	"math/big"
-)
+import big "github.com/ncw/gmp"
 
 // BigSieve generates prime numbers as *big.Int.
 func BigSieve() (ch chan *big.Int) {

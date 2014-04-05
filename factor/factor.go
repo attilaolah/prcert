@@ -3,8 +3,9 @@ package factor
 
 import (
 	"errors"
-	"math/big"
 	"time"
+
+	big "github.com/ncw/gmp"
 
 	"github.com/attilaolah/prcert/sieve"
 )
