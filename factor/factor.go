@@ -54,7 +54,7 @@ func splitOrQuit(z *big.Int, quit <-chan time.Time) (p, q *big.Int, err error) {
 			err = ErrTimeout
 			return
 		case p = <-primes:
-			if q.QuoRem(z, p, r); r.Sign() == 0 {
+			if q.DivMod(z, p, r); r.Sign() == 0 {
 				return
 			}
 			if max.Cmp(p) == -1 {

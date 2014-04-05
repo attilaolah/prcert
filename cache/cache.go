@@ -51,7 +51,7 @@ func BaseExpShiftK(b, e, s, k int64) (z *big.Int, err error) {
 		if s > 0 {
 			z.Mul(z, sh)
 		} else if s != 0 {
-			z.Quo(z, sh)
+			z.Div(z, sh)
 		}
 		z.Add(z, big.NewInt(k))
 	}
