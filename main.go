@@ -12,12 +12,12 @@ import (
 
 func main() {
 
-	if len(os.Args) != 4 {
-		fmt.Printf("usage: %s base exp k\n", os.Args[0])
+	if len(os.Args) != 5 {
+		fmt.Printf("usage: %s b e s k (z=b^(e+s)+k)\n", os.Args[0])
 		return
 	}
 	var err error
-	var base, exp, k int64
+	var base, exp, s, k int64
 	if base, err = strconv.ParseInt(os.Args[1], 10, 64); err != nil {
 		fmt.Println(err)
 		return
@@ -26,18 +26,21 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	if k, err = strconv.ParseInt(os.Args[3], 10, 64); err != nil {
+	if s, err = strconv.ParseInt(os.Args[3], 10, 64); err != nil {
+		fmt.Println(err)
+		return
+	}
+	if k, err = strconv.ParseInt(os.Args[4], 10, 64); err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	fmt.Println(base, exp, k)
-	z, err := cache.BaseExpK(base, exp, k)
+	fmt.Printf("IN: %d^(%d%+d)%+d\n", base, exp, s, k)
+	z, err := cache.BaseExpShiftK(base, exp, s, k)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("ERR:", err)
 		return
 	}
-	fmt.Println(z.BitLen())
-	p, q := factor.Split(z)
-	fmt.Println(p, q.BitLen())
+	p, _ := factor.Split(z)
+	fmt.Println("OUT:", p)
 }
