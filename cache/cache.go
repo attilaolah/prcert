@@ -23,7 +23,9 @@ func BaseExpK(b, e, k int64) (z *big.Int, err error) {
 	if err == nil {
 		var b []byte
 		if b, err = ioutil.ReadAll(file); err == nil {
-			err = z.GobDecode(b)
+			if err = z.GobDecode(b); err == nil {
+				z.Add(z, big.NewInt(k))
+			}
 		}
 		return
 	}
