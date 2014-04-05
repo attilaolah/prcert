@@ -22,12 +22,12 @@ func main() {
 	if err != nil {
 		panic(err.Error())
 	}
+
 	var line string
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line = scanner.Text()
 	}
-	fmt.Println(line)
 	mark, err := strconv.ParseInt(strings.Split(strings.TrimSpace(line), " ")[0], 10, 64)
 	if err != nil {
 		panic(err.Error())
