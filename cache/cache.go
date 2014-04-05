@@ -12,8 +12,8 @@ import (
 
 const cacheDir = ".cache"
 
-// BaseExpK returns b^e+k as big.Int.
-func BaseExpK(b, e, k int64) (z *big.Int, err error) {
+// BaseExp returns b^e.
+func BaseExp(b, e int64) (z *big.Int, err error) {
 	z = big.NewInt(b)
 	filename := filepath.Join(cacheDir, fmt.Sprintf("%d_%d.gob", b, e))
 	if err = os.Mkdir(cacheDir, 0755); err != nil && !os.IsExist(err) {
@@ -23,9 +23,7 @@ func BaseExpK(b, e, k int64) (z *big.Int, err error) {
 	if err == nil {
 		var b []byte
 		if b, err = ioutil.ReadAll(file); err == nil {
-			if err = z.GobDecode(b); err == nil {
-				z.Add(z, big.NewInt(k))
-			}
+			err = z.GobDecode(b)
 		}
 		return
 	}
@@ -33,8 +31,30 @@ func BaseExpK(b, e, k int64) (z *big.Int, err error) {
 		return
 	}
 	z.Exp(z, big.NewInt(e), nil)
-	z.Add(z, big.NewInt(k))
 	err = cache(z, filename)
+	return
+}
+
+// BaseExpK returns b^e+k.
+func BaseExpK(b, e, k int64) (z *big.Int, err error) {
+	if z, err = BaseExp(b, e); err == nil {
+		z.Add(z, big.NewInt(k))
+	}
+	return
+}
+
+// BaseExpShiftK returns b^(e+s)+k.
+func BaseExpShiftK(b, e, s, k int64) (z *big.Int, err error) {
+	if z, err = BaseExp(b, e); err == nil {
+		sh := big.NewInt(b)
+		sh.Exp(sh, big.NewInt(abs(s)), nil)
+		if s > 0 {
+			z.Mul(z, sh)
+		} else if s != 0 {
+			z.Quo(z, sh)
+		}
+		z.Add(z, big.NewInt(k))
+	}
 	return
 }
 
@@ -44,4 +64,11 @@ func cache(z *big.Int, filename string) (err error) {
 		err = ioutil.WriteFile(filename, b, 0644)
 	}
 	return
+}
+
+func abs(i int64) int64 {
+	if i < 0 {
+		i = -i
+	}
+	return i
 }
