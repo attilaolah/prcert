@@ -46,7 +46,12 @@ func Mods(z *big.Int) (ch chan *big.Int) {
 }
 
 // ModsAfter is like Mods, but skips primes smaller than m.
+// Note that it re-uses both z and the remainder that it returns.
+// All returned values are only valid during one iteration.
+// TODO: convert this to a generator and drop the channel.
 func ModsAfter(z, m *big.Int) (ch chan *big.Int) {
+	q := big.NewInt(1)
+	r := big.NewInt(0)
 	t := big.NewInt(0)
 	ch = make(chan *big.Int)
 	go func() {
@@ -56,7 +61,12 @@ func ModsAfter(z, m *big.Int) (ch chan *big.Int) {
 				continue
 			}
 			ch <- p
-			ch <- t.Mod(z, p)
+			z.QuoRem(z, p, t)
+			t.Mul(t, q)
+			t.Add(t, r)
+			q.Mul(q, p)
+			r.Set(t)
+			ch <- t.Rem(t, p)
 		}
 	}()
 	return
