@@ -40,6 +40,28 @@ func SplitOrQuit(z *big.Int, t time.Duration) (p, q *big.Int, err error) {
 	return splitOrQuit(z, time.After(t))
 }
 
+// Mods sends primes and remainders after deviding z by the prime.
+func Mods(z *big.Int) (ch chan *big.Int) {
+	return ModsAfter(z, big.NewInt(0))
+}
+
+// ModsAfter is like Mods, but skips primes smaller than m.
+func ModsAfter(z, m *big.Int) (ch chan *big.Int) {
+	ch = make(chan *big.Int)
+	go func() {
+		// Endless channel, no need to close.
+		for p := range sieve.BigSieve() {
+			if p.Cmp(m) < 0 {
+				continue
+			}
+			ch <- p
+			t := big.NewInt(0).Set(z)
+			ch <- t.Mod(t, p)
+		}
+	}()
+	return
+}
+
 // Just like Split, but return an error when receiving a kill signal from t.
 func splitOrQuit(z *big.Int, quit <-chan time.Time) (p, q *big.Int, err error) {
 	q, r := big.NewInt(0), big.NewInt(0)
