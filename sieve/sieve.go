@@ -15,14 +15,14 @@ import (
 
 // Wheel to quickly generate numbers coprime to 2, 3, 5 and 7.
 // Starting from 13, we successively add wheel[i] to get 17, 19, 23, …
-var wheel = []int{
+var wheel = []uint64{
 	4, 2, 4, 6, 2, 6, 4, 2, 4, 6, 6, 2, 6, 4, 2, 6, 4, 6, 8, 4, 2, 4, 2, 4, 8,
 	6, 4, 6, 2, 4, 6, 2, 6, 6, 4, 2, 4, 6, 2, 6, 4, 2, 4, 2, 10, 2, 10, 2,
 }
 
-// Return a chan int of values (n + k * wheel[i]) for successive i.
-func spin(n, k, i, bufsize int) chan int {
-	out := make(chan int, bufsize)
+// Return a chan uint64 of values (n + k * wheel[i]) for successive i.
+func spin(n, k, i, bufsize uint64) chan uint64 {
+	out := make(chan uint64, bufsize)
 	go func() {
 		for {
 			for ; i < 48; i++ {
@@ -37,11 +37,11 @@ func spin(n, k, i, bufsize int) chan int {
 
 // Return a chan of numbers coprime to 2, 3, 5 and 7, starting from 13.
 // coprime2357() -> 13, 17, 19, 23, 25, 31, 35, 37, 41, 47, …
-func coprime2357() chan int { return spin(13, 1, 0, 1024) }
+func coprime2357() chan uint64 { return spin(13, 1, 0, 1024) }
 
 // Map (p % 210) to a corresponding wheel position.
 // A prime number can only be one of these value (mod 210).
-var wheelpos = map[int]int{
+var wheelpos = map[uint64]uint64{
 	1: 46, 11: 47, 13: 0, 17: 1, 19: 2, 23: 3, 29: 4, 31: 5, 37: 6, 41: 7,
 	43: 8, 47: 9, 53: 10, 59: 11, 61: 12, 67: 13, 71: 14, 73: 15, 79: 16,
 	83: 17, 89: 18, 97: 19, 101: 20, 103: 21, 107: 22, 109: 23, 113: 24,
@@ -54,11 +54,11 @@ var wheelpos = map[int]int{
 // to 2, 3, 5 and 7, starting from (p * p).
 // multiples(11) -> 121, 143, 187, 209, 253, 319, 341, 407, 451, 473, …
 // multiples(13) -> 169, 221, 247, 299, 377, 403, 481, 533, 559, 611, …
-func multiples(p int) chan int { return spin(p*p, p, wheelpos[p%210], 1024) }
+func multiples(p uint64) chan uint64 { return spin(p*p, p, wheelpos[p%210], 1024) }
 
 type peekCh struct {
-	head int
-	ch   chan int
+	head uint64
+	ch   chan uint64
 }
 
 // Heap of peekCh, sorted by head values.
@@ -90,21 +90,21 @@ func (h *peekChHeap) Push(v interface{}) {
 // in an expanding buffer, so that sending to `out` never blocks.
 // See this discussion:
 // <http://rogpeppe.wordpress.com/2010/02/10/unlimited-buffering-with-low-overhead>
-func sendproxy(out chan<- int) chan<- int {
-	proxy := make(chan int, 1024)
+func sendproxy(out chan<- uint64) chan<- uint64 {
+	proxy := make(chan uint64, 1024)
 	go func() {
 		n := 1024 // the allocated size of the circular queue
 		first := ring.New(n)
 		last := first
-		var c chan<- int
-		var e int
+		var c chan<- uint64
+		var e uint64
 		for {
 			c = out
 			if first == last {
 				// buffer empty: disable output
 				c = nil
 			} else {
-				e = first.Value.(int)
+				e = first.Value.(uint64)
 			}
 			select {
 			case e = <-proxy:
@@ -124,26 +124,33 @@ func sendproxy(out chan<- int) chan<- int {
 }
 
 // Sieve generates primes in a channel.
-func Sieve() chan int {
+func Sieve() chan uint64 {
+	return sieve13(2, 3, 5, 7, 11)
+}
+
+// Sieve7 generates primes in a channel, starting from 7.
+func Sieve7() chan uint64 {
+	return sieve13(7, 11)
+}
+
+func sieve13(feed ...uint64) chan uint64 {
 	// The output values.
-	out := make(chan int, 1024)
-	out <- 2
-	out <- 3
-	out <- 5
-	out <- 7
-	out <- 11
+	out := make(chan uint64, 1024)
+	for _, i := range feed {
+		out <- i
+	}
 
 	// The channel of all composites to be eliminated in increasing order.
-	composites := make(chan int, 8046)
+	composites := make(chan uint64, 8046)
 
 	// The feedback loop.
-	primes := make(chan int, 1024)
+	primes := make(chan uint64, 1024)
 	primes <- 11
 
 	// Merge channels of multiples of `primes` into `composites`.
 	go func() {
 		h := make(peekChHeap, 0, 8046)
-		min := 143
+		var min uint64 = 143
 		for {
 			m := multiples(<-primes)
 			head := <-m
